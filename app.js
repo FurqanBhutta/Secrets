@@ -3,7 +3,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import ejs from "ejs";
 import mongoose from "mongoose";
-import encrypt from "mongoose-encryption";
+import encrypt from "mongoose-encryption";dasdfd
 
 const app = express();
 
