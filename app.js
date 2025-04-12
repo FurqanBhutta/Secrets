@@ -3,7 +3,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import ejs from "ejs";
 import mongoose from "mongoose";
-import encrypt from "mongoose-encryption";dasdfd
+import encrypt from "mongoose-encryption";
 
 const app = express();
 
@@ -21,8 +21,8 @@ const userSchema = new mongoose.Schema({
     password: String
 });
 
-const secret = "thisismysecret";
-userSchema.plugin(encrypt, {secret: secret, encryptedFields: ["password"]});
+
+userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]});
 
 const User = mongoose.model("User", userSchema);
 
@@ -52,7 +52,7 @@ app.post("/register", async(req,res)=>{
 app.post("/login", async(req,res)=>{
     try{
         const foundUser = await User.findOne({email: req.body.username});
-        console.log(foundUser);
+        // console.log(foundUser);
         if(!foundUser){
             res.send("There is no account!");
         }else{
