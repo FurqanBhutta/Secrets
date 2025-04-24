@@ -10,6 +10,9 @@ import session from 'express-session';
 import passport from 'passport';
 import passportLocalMongoose from 'passport-local-mongoose'
 /////////// passport local is dependency of passport local mongoose
+import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import findOrCreate from 'mongoose-findorcreate';
+
 
 const saltRounds = 10;
 
@@ -35,19 +38,46 @@ async function main() {
 
 const userSchema = new mongoose.Schema({
     email: String,
-    password: String
+    password: String,
+    googleId: String
 });
 
 // userSchema.plugin(encrypt, {secret: process.env.SECRET, encryptedFields: ["password"]});
 userSchema.plugin( passportLocalMongoose);
+userSchema.plugin(findOrCreate);
 
 const User = mongoose.model("User", userSchema);
 
 passport.use(User.createStrategy());
 
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+passport.serializeUser(function(user, cb) {
+  process.nextTick(function() {
+    return cb(null, {
+      id: user.id,
+      username: user.username,
+      picture: user.picture
+    });
+  });
+});
 
+passport.deserializeUser(function(user, cb) {
+  process.nextTick(function() {
+    return cb(null, user);
+  });
+});
+
+passport.use(new GoogleStrategy({
+    clientID: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
+    callbackURL: "http://localhost:3000/auth/google/secrets",
+  },
+  function(accessToken, refreshToken, profile, cb) {
+    console.log(profile);
+    User.findOrCreate({ googleId: profile.id }, function (err, user) {
+      return cb(err, user);
+    });
+  }
+));
 
 app.get("/", (req,res)=>{
     res.render("home");
@@ -71,6 +101,17 @@ app.get("/logout", (req, res)=>{
         res.redirect('/');
       });
 })
+app.get("/auth/google", 
+    passport.authenticate('google', {scope: ["profile"]})
+)
+app.get("/auth/google/secrets", 
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    function(req, res) {
+      // Successful authentication, redirect home.
+      res.redirect("/secrets");
+    });
+
+
 
 app.post("/register", async(req,res)=>{
     try{
